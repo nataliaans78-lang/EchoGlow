@@ -1,5 +1,5 @@
 ﻿<p align="center">
-  <img src="docs/assets/banner.svg" alt="EchoGlow banner" width="85%">
+  <img src="docs/assets/banner.svg?v=20260304-3" alt="EchoGlow banner" width="85%">
 </p>
 
 ---

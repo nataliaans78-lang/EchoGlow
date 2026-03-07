@@ -60,9 +60,10 @@ let toastRoot = null;
 let toastTimer = null;
 let clearModalLastFocus = null;
 let visualizerLastFrameAt = 0;
-const VISUALIZER_TARGET_FPS = 18;
-const VISUALIZER_MOBILE_MAX_BARS = 100;
-const VISUALIZER_DESKTOP_MAX_BARS = 160;
+const VISUALIZER_MOBILE_TARGET_FPS = 20;
+const VISUALIZER_DESKTOP_TARGET_FPS = 16;
+const VISUALIZER_MOBILE_MAX_BARS = 110;
+const VISUALIZER_DESKTOP_MAX_BARS = 132;
 const VISUALIZER_SHADOW_EVERY = 7;
 
 window.audioMetrics = {
@@ -429,6 +430,23 @@ async function restorePersistentState() {
 
     updatePlayPauseBtn();
 }
+
+function updateRangeVisual(rangeEl, value = null) {
+    if (!rangeEl) return;
+    const min = Number(rangeEl.min || 0);
+    const max = Number(rangeEl.max || 100);
+    const current = value === null ? Number(rangeEl.value) : Number(value);
+    const safeValue = Number.isFinite(current) ? current : min;
+    const denominator = max - min || 1;
+    const progress = ((safeValue - min) / denominator) * 100;
+    const clamped = Math.max(0, Math.min(100, progress));
+    rangeEl.style.setProperty('--range-progress', `${clamped}%`);
+}
+
+function syncRangeVisuals() {
+    updateRangeVisual(seekBar);
+    updateRangeVisual(volumeBar);
+}
 let reactiveBassLevel = 0;
 
 // --- Arc text layout ---
@@ -733,7 +751,9 @@ function startVisualizer(){
 
     function animate(timestamp){
         if (runToken !== visualizerRunToken) return;
-        const frameInterval = 1000 / VISUALIZER_TARGET_FPS;
+        const isMobile = window.innerWidth <= 768;
+        const targetFps = isMobile ? VISUALIZER_MOBILE_TARGET_FPS : VISUALIZER_DESKTOP_TARGET_FPS;
+        const frameInterval = 1000 / targetFps;
         if (timestamp && timestamp - visualizerLastFrameAt < frameInterval) {
             visualizerAnimationId = requestAnimationFrame(animate);
             return;
@@ -782,20 +802,26 @@ function updateReactiveBackground(dataArray) {
 function drawVisualizer(bufferLength, dataArray) {
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
+    const isMobile = window.innerWidth <= 768;
+    const drawCount = Math.min(
+        bufferLength,
+        isMobile ? VISUALIZER_MOBILE_MAX_BARS : VISUALIZER_DESKTOP_MAX_BARS
+    );
     const avgEnergy = Math.max(0, Math.min(1, (window.audioMetrics?.avgEnergy || 0) / 255));
     visualizerFrameTick += 1;
 
     // Subtle neon bloom in the center (cache gradient; draw every fifth frame).
-    if (visualizerFrameTick % 5 === 0) {
-        const glowRadius = Math.min(canvas.width, canvas.height) * (0.128 + avgEnergy * 0.053);
+    if (visualizerFrameTick % (isMobile ? 4 : 5) === 0) {
+        const mobileGlowFactor = isMobile ? 0.62 : 1;
+        const glowRadius = Math.min(canvas.width, canvas.height) * ((0.128 + avgEnergy * 0.053) * (isMobile ? 0.82 : 1));
         const glowKey = `${canvas.width}x${canvas.height}`;
         if (!cachedCenterGlow || cachedCenterGlowKey !== glowKey) {
             cachedCenterGlowKey = glowKey;
             cachedCenterGlow = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, glowRadius);
         }
         const glow = cachedCenterGlow;
-        glow.addColorStop(0, `rgba(0, 220, 255, ${0.15 + avgEnergy * 0.105})`);
-        glow.addColorStop(0.6, `rgba(255, 0, 200, ${0.098 + avgEnergy * 0.075})`);
+        glow.addColorStop(0, `rgba(0, 220, 255, ${(0.15 + avgEnergy * 0.105) * mobileGlowFactor})`);
+        glow.addColorStop(0.6, `rgba(255, 0, 200, ${(0.098 + avgEnergy * 0.075) * mobileGlowFactor})`);
         glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
@@ -806,14 +832,14 @@ function drawVisualizer(bufferLength, dataArray) {
         ctx.restore();
     }
 
-    const tailStart = Math.floor(bufferLength * 0.9);
+    const tailStart = Math.floor(drawCount * 0.9);
     let tailMax = 0;
-    for (let i = tailStart; i < bufferLength; i += 1) {
+    for (let i = tailStart; i < drawCount; i += 1) {
         if (dataArray[i] > tailMax) tailMax = dataArray[i];
     }
     const tailThreshold = tailMax * 0.9;
 
-    for (let i = 0; i < bufferLength; i += 1) {
+    for (let i = 0; i < drawCount; i += 1) {
         const barHeight = dataArray[i];
         ctx.save();
         ctx.translate(centerX, centerY);
@@ -824,21 +850,21 @@ function drawVisualizer(bufferLength, dataArray) {
         const isTailHighlight = i >= tailStart && barHeight >= tailThreshold && tailMax > 0;
         ctx.strokeStyle = isTailHighlight ? 'rgba(255, 255, 255, 1)' : `hsl(${hue}, 100%, ${lightness}%)`;
         if (i % VISUALIZER_SHADOW_EVERY === 0) {
-            ctx.shadowBlur = 30;
+            ctx.shadowBlur = isMobile ? 30 : 22;
             ctx.shadowColor = isTailHighlight ? 'rgba(255, 255, 255, 0.65)' : `hsla(${hue}, 100%, 60%, 0.5)`;
         } else {
             ctx.shadowBlur = 0;
         }
-        ctx.lineWidth = 1;
+        ctx.lineWidth = isMobile ? 1.15 : 1;
 
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(0, barHeight);
-        ctx.arc(0, barHeight + barHeight / 2, barHeight / 10, 0, Math.PI * 2);
+        ctx.arc(0, barHeight + barHeight / 2, barHeight / (isMobile ? 9 : 10), 0, Math.PI * 2);
         ctx.stroke();
 
         if (i % VISUALIZER_SHADOW_EVERY === 0) {
-            ctx.lineWidth = 3.1;
+            ctx.lineWidth = isMobile ? 3.25 : 2.45;
             ctx.shadowBlur = 0;
             ctx.globalCompositeOperation = 'lighter';
             ctx.strokeStyle = isTailHighlight ? 'rgba(255, 255, 255, 0.4)' : `hsla(${hue}, 100%, 70%, 0.85)`;
@@ -1072,7 +1098,10 @@ async function handleFullReset() {
   setPlaylistToolsOpen(false);
   updateSearchClearBtn();
 
-  if (seekBar) seekBar.value = 0;
+  if (seekBar) {
+    seekBar.value = 0;
+    updateRangeVisual(seekBar, 0);
+  }
   if (currentTimeEl) currentTimeEl.textContent = '0:00';
   if (totalTimeEl) totalTimeEl.textContent = '0:00';
 
@@ -1468,6 +1497,7 @@ prevBtn.addEventListener('click', playPrev);
 audioA.addEventListener('timeupdate',()=>{
     if(audioA.duration){
         seekBar.value=(audioA.currentTime/audioA.duration)*100;
+        updateRangeVisual(seekBar);
         currentTimeEl.textContent=formatTime(audioA.currentTime);
         totalTimeEl.textContent=formatTime(audioA.duration);
         scheduleStatePersist();
@@ -1477,12 +1507,14 @@ audioA.addEventListener('timeupdate',()=>{
 seekBar.addEventListener('input',e=>{
     if(audioA.duration) {
         audioA.currentTime=(audioA.duration*e.target.value)/100;
+        updateRangeVisual(seekBar, e.target.value);
         scheduleStatePersist();
     }
 });
 
 volumeBar.addEventListener('input',e=>{
     audioA.volume=e.target.value/100;volumePercentage.textContent=`${e.target.value}%`;
+    updateRangeVisual(volumeBar, e.target.value);
     scheduleStatePersist();
 });
 
@@ -1491,6 +1523,7 @@ function setVolume(nextValue) {
     audioA.volume = clamped / 100;
     volumeBar.value = clamped;
     volumePercentage.textContent = `${Math.round(clamped)}%`;
+    updateRangeVisual(volumeBar, clamped);
     scheduleStatePersist();
 }
 
@@ -1604,6 +1637,7 @@ restorePersistentState().catch(() => {
   updatePlaylistState();
   updatePlayPauseBtn();
 });
+syncRangeVisuals();
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
@@ -1619,6 +1653,15 @@ function setPlaylistOpenState(isOpen) {
   open = isOpen;
   playlist.classList.toggle('open', isOpen);
 }
+
+function closePlaylistFromPlayerInteraction() {
+  if (!open) return;
+  if (window.innerWidth > 768) return;
+  setPlaylistOpenState(false);
+}
+
+visualizerContainer?.addEventListener('pointerdown', closePlaylistFromPlayerInteraction);
+audioControls?.addEventListener('pointerdown', closePlaylistFromPlayerInteraction);
 
 /* Handle click */
 handle.addEventListener('click', () => {
@@ -1719,4 +1762,3 @@ document.addEventListener('keydown', e => {
 
 
 }
-
