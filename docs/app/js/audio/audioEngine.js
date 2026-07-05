@@ -77,8 +77,16 @@ export function initAudioEngine(context) {
   function updateActiveSong() {
     document.querySelectorAll('.song').forEach(songEl => {
       const idx = Number(songEl.dataset.songIndex);
-      songEl.classList.toggle('active', idx === state.songIndex);
+      const isActive = idx === state.songIndex;
+      songEl.classList.toggle('active', isActive);
+      if (isActive) songEl.setAttribute('aria-current', 'true');
+      else songEl.removeAttribute('aria-current');
     });
+  }
+
+  function updatePlaybackModeButtons() {
+    shuffleBtn.setAttribute('aria-pressed', String(state.isShuffling));
+    repeatBtn.setAttribute('aria-pressed', String(state.isRepeating));
   }
 
   function stopPlaybackAndReset() {
@@ -151,6 +159,8 @@ export function initAudioEngine(context) {
       audioA.loop = false;
     }
 
+    updatePlaybackModeButtons();
+
     context.actions.scheduleStatePersist?.({ immediate: true });
   }
 
@@ -163,6 +173,8 @@ export function initAudioEngine(context) {
       state.isShuffling = false;
       shuffleBtn.classList.remove('active');
     }
+
+    updatePlaybackModeButtons();
 
     context.actions.scheduleStatePersist?.({ immediate: true });
   }
@@ -273,6 +285,7 @@ export function initAudioEngine(context) {
     toggleRepeat,
     toggleShuffle,
     updateActiveSong,
+    updatePlaybackModeButtons,
     updatePlayPauseBtn
   });
 }

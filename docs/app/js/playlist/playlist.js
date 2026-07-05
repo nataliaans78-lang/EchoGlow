@@ -89,6 +89,7 @@ export function initPlaylist(context) {
     state.clearModalLastFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     clearModal.classList.add('open');
     clearModal.setAttribute('aria-hidden', 'false');
+    clearModal.removeAttribute('inert');
     document.body.classList.add('modal-open');
     document.addEventListener('keydown', handleClearModalKeydown);
     requestAnimationFrame(() => {
@@ -99,25 +100,24 @@ export function initPlaylist(context) {
   function closeClearModal({ returnFocus = true } = {}) {
     if (!clearModal) return;
 
-    let nextFocus = null;
-    if (returnFocus) {
-      if (playlistClearBtn && !playlistClearBtn.hidden) nextFocus = playlistClearBtn;
-      else if (controlsToggleBtn) nextFocus = controlsToggleBtn;
-      else if (playlistToolsToggle) nextFocus = playlistToolsToggle;
-    } else if (state.clearModalLastFocus instanceof HTMLElement && document.contains(state.clearModalLastFocus)) {
-      nextFocus = state.clearModalLastFocus;
-    }
-
-    if (nextFocus) {
-      nextFocus.focus({ preventScroll: true });
-    } else if (document.activeElement && clearModal.contains(document.activeElement)) {
-      document.body.focus?.();
-    }
-
     clearModal.classList.remove('open');
     clearModal.setAttribute('aria-hidden', 'true');
+    clearModal.setAttribute('inert', '');
     document.body.classList.remove('modal-open');
     document.removeEventListener('keydown', handleClearModalKeydown);
+
+    let nextFocus = null;
+    if (returnFocus && state.clearModalLastFocus instanceof HTMLElement
+      && document.contains(state.clearModalLastFocus)) {
+      nextFocus = state.clearModalLastFocus;
+    } else if (returnFocus && playlistClearBtn && !playlistClearBtn.hidden) {
+      nextFocus = playlistClearBtn;
+    } else if (returnFocus) {
+      nextFocus = controlsToggleBtn || playlistToolsToggle;
+    }
+
+    nextFocus?.focus({ preventScroll: true });
+    state.clearModalLastFocus = null;
   }
 
   function handleClearPlaylist() {
@@ -142,6 +142,7 @@ export function initPlaylist(context) {
     state.isRepeating = false;
     context.refs.shuffleBtn.classList.remove('active');
     context.refs.repeatBtn.classList.remove('active');
+    context.actions.updatePlaybackModeButtons?.();
     audioA.loop = false;
     context.actions.setVolume?.(100);
 

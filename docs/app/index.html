@@ -41,7 +41,7 @@
           <button id="playlist-tools-toggle" class="playlist-icon-btn" type="button" aria-label="Open search panel" aria-expanded="false" aria-controls="playlist-tools-panel" title="Search">
             <img src="icons/search.svg" alt="" aria-hidden="true">
           </button>
-          <div id="playlist-tools-panel" role="search" aria-label="Playlist search panel" aria-hidden="true">
+          <div id="playlist-tools-panel" role="search" aria-label="Playlist search panel" aria-hidden="true" inert>
             <div class="playlist-search">
               <input id="song-search" type="search" placeholder="Search tracks" aria-label="Search tracks" autocomplete="off">
             </div>
@@ -53,7 +53,7 @@
    </div>
 
   <div id="visualizer-container">
-    <canvas id="canvasA"></canvas>
+    <canvas id="canvasA" aria-hidden="true"></canvas>
       <div id="audio-controls">
         <input type="range" id="seek-bar" value="0" step="1" min="0" max="100" aria-label="Seek">
         <div id="time-display">
@@ -66,14 +66,14 @@
           <button id="eq-btn" class="icon-btn" aria-label="Open equalizer">
             <img id="eq-icon" src="icons/eq.svg" alt="" aria-hidden="true">
           </button>
-          <button id="shuffle-btn" class="icon-btn" aria-label="Shuffle"><img src="icons/shuffle.svg" alt="" aria-hidden="true"></button>
+          <button id="shuffle-btn" class="icon-btn" aria-label="Shuffle" aria-pressed="false"><img src="icons/shuffle.svg" alt="" aria-hidden="true"></button>
           <button id="prev-btn" class="icon-btn" aria-label="Previous track"><img src="icons/previous.svg" alt="" aria-hidden="true"></button>
           <button id="play-pause-btn" class="icon-btn" aria-label="Play"><img id="play-pause-icon" src="icons/play.svg" alt="" aria-hidden="true"></button>
           <button id="next-btn" class="icon-btn" aria-label="Next track"><img src="icons/next.svg" alt="" aria-hidden="true"></button>
-          <button id="repeat-btn" class="icon-btn" aria-label="Repeat"><img src="icons/repeat.svg" alt="" aria-hidden="true"></button>
+          <button id="repeat-btn" class="icon-btn" aria-label="Repeat" aria-pressed="false"><img src="icons/repeat.svg" alt="" aria-hidden="true"></button>
         </div>
 
-          <div id="eq-panel">
+          <div id="eq-panel" aria-hidden="true" inert>
             <div class="eq-panel-header">
               <h3>Equalizer</h3>
               <button id="eq-close-btn" class="icon-btn" aria-label="Close equalizer">
@@ -97,12 +97,12 @@
                   <span class="eq-preset-caret" aria-hidden="true"></span>
                 </button>
 
-                <div id="eq-preset-menu" class="eq-preset-menu" role="listbox" aria-label="Equalizer preset">
-                  <button type="button" class="eq-preset-option is-selected" data-value="custom" role="option" aria-selected="true">Custom</button>
-                  <button type="button" class="eq-preset-option" data-value="flat" role="option" aria-selected="false">Flat</button>
-                  <button type="button" class="eq-preset-option" data-value="bass-boost" role="option" aria-selected="false">Bass Boost</button>
-                  <button type="button" class="eq-preset-option" data-value="vocal" role="option" aria-selected="false">Vocal</button>
-                  <button type="button" class="eq-preset-option" data-value="treble-boost" role="option" aria-selected="false">Treble Boost</button>
+                <div id="eq-preset-menu" class="eq-preset-menu" role="listbox" aria-label="Equalizer preset" aria-hidden="true" inert>
+                  <button type="button" class="eq-preset-option is-selected" data-value="custom" role="option" aria-selected="true" tabindex="-1">Custom</button>
+                  <button type="button" class="eq-preset-option" data-value="flat" role="option" aria-selected="false" tabindex="-1">Flat</button>
+                  <button type="button" class="eq-preset-option" data-value="bass-boost" role="option" aria-selected="false" tabindex="-1">Bass Boost</button>
+                  <button type="button" class="eq-preset-option" data-value="vocal" role="option" aria-selected="false" tabindex="-1">Vocal</button>
+                  <button type="button" class="eq-preset-option" data-value="treble-boost" role="option" aria-selected="false" tabindex="-1">Treble Boost</button>
                 </div>
 
                 <select id="eq-preset-select" class="sr-only" tabindex="-1" aria-hidden="true">
@@ -139,7 +139,7 @@
   </div>
 
   <audio id="audioA" style="display:none;"></audio>
-  <div id="clear-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="clear-modal-title" aria-describedby="clear-modal-desc" aria-hidden="true">
+  <div id="clear-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="clear-modal-title" aria-describedby="clear-modal-desc" aria-hidden="true" inert>
     <div class="modal-card">
       <h2 id="clear-modal-title">Clear playlist?</h2>
       <p id="clear-modal-desc">Choose what you want to clear.</p>

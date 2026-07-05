@@ -259,6 +259,7 @@ export function initStorage(context) {
 
     shuffleBtn.classList.toggle('active', state.isShuffling);
     repeatBtn.classList.toggle('active', state.isRepeating);
+    context.actions.updatePlaybackModeButtons?.();
     audioA.loop = state.isRepeating;
   }
 
