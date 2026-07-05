@@ -2,6 +2,7 @@ export function initControls(context) {
   const {
     refs: {
       animatedText,
+      audioControls,
       controlsToggleBtn,
       controlsToggleIcon,
       playlistRoot,
@@ -137,6 +138,7 @@ export function initControls(context) {
     playlistToolsToggle.classList.toggle('active', isOpen);
     playlistToolsToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     playlistToolsPanel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    playlistToolsPanel.toggleAttribute('inert', !isOpen);
 
     if (isOpen && focusInput) {
       requestAnimationFrame(() => songSearchInput?.focus());
@@ -153,6 +155,12 @@ export function initControls(context) {
     }
 
     document.body.classList.toggle('controls-hidden', isHidden);
+
+    Array.from(audioControls?.children || []).forEach(child => {
+      if (child === controlsToggleBtn) return;
+      const isClosedEqPanel = child.id === 'eq-panel' && !audioControls.classList.contains('eq-open');
+      child.toggleAttribute('inert', isHidden || isClosedEqPanel);
+    });
 
     if (controlsToggleIcon) {
       controlsToggleIcon.src = isHidden ? 'icons/up.svg' : 'icons/down.svg';

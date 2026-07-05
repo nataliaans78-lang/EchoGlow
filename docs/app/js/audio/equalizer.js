@@ -38,9 +38,12 @@
     }
   }
 
-  function closePresetMenu() {
+  function closePresetMenu({ returnFocus = false } = {}) {
     presetDropdown?.classList.remove('open');
     presetToggle?.setAttribute('aria-expanded', 'false');
+    presetMenu?.setAttribute('aria-hidden', 'true');
+    presetMenu?.setAttribute('inert', '');
+    if (returnFocus) presetToggle?.focus({ preventScroll: true });
   }
 
   function positionPresetMenu() {
@@ -56,10 +59,20 @@
     presetMenu.style.setProperty('--eq-menu-max-height', `${safeHeight}px`);
   }
 
-  function openPresetMenu() {
+  function openPresetMenu({ focus = 'selected' } = {}) {
     positionPresetMenu();
     presetDropdown?.classList.add('open');
     presetToggle?.setAttribute('aria-expanded', 'true');
+    presetMenu?.setAttribute('aria-hidden', 'false');
+    presetMenu?.removeAttribute('inert');
+
+    const selectedIndex = Math.max(0, presetOptions.findIndex(option => option.getAttribute('aria-selected') === 'true'));
+    const targetIndex = focus === 'first'
+      ? 0
+      : focus === 'last'
+        ? presetOptions.length - 1
+        : selectedIndex;
+    requestAnimationFrame(() => presetOptions[targetIndex]?.focus());
   }
 
   function togglePresetMenu() {
@@ -67,6 +80,56 @@
     const isOpen = presetDropdown.classList.contains('open');
     if (isOpen) closePresetMenu();
     else openPresetMenu();
+  }
+
+  function selectPreset(option) {
+    const value = option?.dataset.value;
+    if (!value || !eqPresetSelect) return;
+
+    eqPresetSelect.value = value;
+    eqPresetSelect.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function focusPresetOption(index) {
+    if (!presetOptions.length) return;
+    const nextIndex = (index + presetOptions.length) % presetOptions.length;
+    presetOptions[nextIndex].focus();
+  }
+
+  function handlePresetMenuKeydown(event) {
+    const currentIndex = presetOptions.indexOf(document.activeElement);
+    if (currentIndex < 0 && event.key !== 'Escape') return;
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        focusPresetOption(currentIndex + 1);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        focusPresetOption(currentIndex - 1);
+        break;
+      case 'Home':
+        event.preventDefault();
+        focusPresetOption(0);
+        break;
+      case 'End':
+        event.preventDefault();
+        focusPresetOption(presetOptions.length - 1);
+        break;
+      case 'Enter':
+      case ' ':
+        event.preventDefault();
+        selectPreset(presetOptions[currentIndex]);
+        closePresetMenu({ returnFocus: true });
+        break;
+      case 'Escape':
+        event.preventDefault();
+        closePresetMenu({ returnFocus: true });
+        break;
+      default:
+        break;
+    }
   }
 
   function getCurrentEQSettings() {
@@ -142,9 +205,12 @@
   }
 
   function setEQState(isOpen) {
+    const shouldRestoreFocus = !isOpen && Boolean(eqPanel?.contains(document.activeElement));
     audioControls?.classList.toggle('eq-open', isOpen);
     eqPanel?.classList.toggle('open', isOpen);
     eqBtn?.classList.toggle('active', isOpen);
+    eqPanel?.setAttribute('aria-hidden', String(!isOpen));
+    eqPanel?.toggleAttribute('inert', !isOpen);
 
     if (!isOpen) {
       closePresetMenu();
@@ -163,6 +229,10 @@
       document.body.classList.contains('controls-hidden') ? 'Show control bar' : 'Hide control bar');
     if (controlsToggleIcon) {
       controlsToggleIcon.alt = document.body.classList.contains('controls-hidden') ? 'Show controls' : 'Hide controls';
+    }
+
+    if (shouldRestoreFocus) {
+      eqBtn?.focus({ preventScroll: true });
     }
   }
 
@@ -215,15 +285,18 @@
   });
 
   presetToggle?.addEventListener('click', togglePresetMenu);
+  presetToggle?.addEventListener('keydown', event => {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === 'ArrowUp' || event.key === 'End') openPresetMenu({ focus: 'last' });
+    else openPresetMenu({ focus: 'first' });
+  });
+  presetMenu?.addEventListener('keydown', handlePresetMenuKeydown);
 
   presetOptions.forEach(option => {
     option.addEventListener('click', () => {
-      const value = option.dataset.value;
-      if (!eqPresetSelect) return;
-
-      eqPresetSelect.value = value;
-      eqPresetSelect.dispatchEvent(new Event('change', { bubbles: true }));
-      closePresetMenu();
+      selectPreset(option);
+      closePresetMenu({ returnFocus: true });
     });
   });
 
@@ -235,8 +308,9 @@
   });
 
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape') {
-      closePresetMenu();
+    if (event.key === 'Escape' && presetDropdown?.classList.contains('open')) {
+      event.preventDefault();
+      closePresetMenu({ returnFocus: true });
     }
   });
 
