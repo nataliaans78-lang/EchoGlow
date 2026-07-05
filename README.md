@@ -80,7 +80,7 @@
 - Toast feedback for autosave & storage limits
 - Keyboard shortcuts (play/pause, next/prev, seek, volume)
 - Mobile layout with slide-down playlist panel
-- Service Worker (PWA-ready app shell)
+- PWA manifest and Service Worker registration
 
 ---
 
@@ -89,7 +89,9 @@
 - HTML / CSS / Vanilla JS
 - Web Audio API (AudioContext + BiquadFilter + Analyser)
 - IndexedDB + localStorage
-- Service Worker (offline-ready shell)
+- Service Worker + PWA manifest
+
+EchoGlow is a static site served directly from `docs/`. It does not require npm, dependency installation, or a build step.
 
 ---
 
@@ -106,29 +108,11 @@ Initial public release including:
 
 ## ▶️ Run Locally
 
-Run it from a local server.
-
-### Option A: Live Server
-
-Open the `docs` folder with VS Code and start **Live Server**.
-
-Landing page:
-
-```text
-/
-```
-
-App:
-
-```text
-/app/
-```
-
-### Option B: Python server
+Run the static site with Python:
 
 ```bash
 cd docs
-python -m http.server 8000
+py -m http.server 8000
 ```
 
 Then open:
@@ -142,3 +126,23 @@ or:
 ```text
 http://localhost:8000/app/
 ```
+
+No npm commands or build step are needed.
+
+---
+
+## Notes
+
+- Audio files and player state are persisted locally in the browser with IndexedDB and localStorage.
+- Uploaded audio stays local to the browser and is not uploaded by the player.
+- Large demo media may be hosted through GitHub Releases instead of the Pages site.
+
+---
+
+## License & Credits
+
+The source code is available under the [MIT License](LICENSE).
+
+Project visuals, screenshots, GIFs, and demo media are portfolio assets. They are not granted under the MIT License and should not be reused separately without first checking the applicable rights.
+
+Built with the Web Audio API, Canvas, IndexedDB, and localStorage.
