@@ -55,7 +55,7 @@
         width="100%"
       />
     </td>
-    <td valign="middle" width="50%" align="center">
+    <td valign="middle" width="40%" align="center">
       <img
         src="docs/assets/image/ScreenShot_Mobile.png"
         alt="Mobile UI"
