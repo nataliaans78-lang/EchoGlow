@@ -1,4 +1,4 @@
-const CACHE_NAME = "echoglow-v8";
+const CACHE_NAME = "echoglow-v9";
 const CACHE_PREFIX = CACHE_NAME.slice(0, CACHE_NAME.lastIndexOf("-") + 1);
 
 const APP_SHELL = [
@@ -25,6 +25,19 @@ const APP_SHELL = [
   "./app/js/playlist/playlist.js",
   "./app/js/ui/controls.js",
   "./app/audioWorker.js",
+  "./app/icons/play.svg",
+  "./app/icons/pause.svg",
+  "./app/icons/next.svg",
+  "./app/icons/previous.svg",
+  "./app/icons/shuffle.svg",
+  "./app/icons/repeat.svg",
+  "./app/icons/eq.svg",
+  "./app/icons/return.svg",
+  "./app/icons/down.svg",
+  "./app/icons/up.svg",
+  "./app/icons/upload.svg",
+  "./app/icons/search.svg",
+  "./app/icons/clear-all.svg",
   "./manifest.webmanifest",
   "./favicon.png"
 ];
