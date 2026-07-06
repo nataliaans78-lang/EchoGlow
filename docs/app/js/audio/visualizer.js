@@ -13,6 +13,100 @@ export function initVisualizer(context) {
     shadowEvery: VISUALIZER_SHADOW_EVERY
   } = VISUALIZER_CONSTANTS;
 
+  const particles = [];
+  const PARTICLE_DESKTOP_COUNT = 60;
+  const PARTICLE_MOBILE_COUNT = 30;
+  const PARTICLE_HUES = [190, 215, 258];
+
+  function usesMobileParticleProfile() {
+    return window.innerWidth <= 1024 || window.matchMedia?.('(pointer: coarse)').matches;
+  }
+
+  function resetParticle(particle, randomizeAge = false) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 0.08 + Math.random() * 0.2;
+    particle.x = Math.random() * canvas.width;
+    particle.y = Math.random() * canvas.height;
+    particle.vx = Math.cos(angle) * speed;
+    particle.vy = Math.sin(angle) * speed;
+    particle.size = 0.55 + Math.random() * 1.25;
+    particle.alpha = 0.12 + Math.random() * 0.26;
+    particle.hue = PARTICLE_HUES[Math.floor(Math.random() * PARTICLE_HUES.length)];
+    particle.phase = Math.random() * Math.PI * 2;
+    particle.age = randomizeAge ? Math.random() * 360 : 0;
+    particle.life = 240 + Math.random() * 240;
+  }
+
+  function ensureParticles() {
+    if (!canvas) return;
+    const targetCount = usesMobileParticleProfile()
+      ? PARTICLE_MOBILE_COUNT
+      : PARTICLE_DESKTOP_COUNT;
+
+    while (particles.length < targetCount) {
+      const particle = {};
+      resetParticle(particle, true);
+      particles.push(particle);
+    }
+    if (particles.length > targetCount) particles.length = targetCount;
+  }
+
+  function resetParticles() {
+    for (let i = 0; i < particles.length; i += 1) {
+      resetParticle(particles[i], true);
+    }
+  }
+
+  function drawParticles(avgEnergy, bassEnergy) {
+    ensureParticles();
+    const mobileProfile = usesMobileParticleProfile();
+    const energy = avgEnergy * 0.68 + bassEnergy * 0.32;
+    const motion = 0.72 + energy * 2.1;
+    const pulse = 0.78 + bassEnergy * 0.72;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.shadowBlur = mobileProfile ? 0 : 5;
+
+    for (let i = 0; i < particles.length; i += 1) {
+      const particle = particles[i];
+      particle.age += 1;
+      particle.phase += 0.012 + bassEnergy * 0.025;
+      particle.x += particle.vx * motion;
+      particle.y += particle.vy * motion;
+
+      if (
+        particle.age >= particle.life ||
+        particle.x < -4 || particle.x > canvas.width + 4 ||
+        particle.y < -4 || particle.y > canvas.height + 4
+      ) {
+        resetParticle(particle);
+      }
+
+      const shimmer = 0.76 + Math.sin(particle.phase) * 0.24;
+      const opacity = particle.alpha * shimmer * (0.72 + energy * 0.85);
+      const radius = particle.size * pulse;
+      ctx.fillStyle = `hsla(${particle.hue}, 100%, 68%, ${opacity})`;
+      ctx.shadowColor = `hsla(${particle.hue}, 100%, 64%, ${opacity})`;
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  function compressRadialLength(length) {
+    const canvasRadius = Math.min(canvas.width, canvas.height);
+    const compressionStart = canvasRadius * 0.38;
+    const maximumLength = canvasRadius * 0.52;
+    if (length <= compressionStart) return length;
+
+    const compressionRange = maximumLength - compressionStart;
+    const overflow = length - compressionStart;
+    return compressionStart + compressionRange * (1 - Math.exp(-overflow / compressionRange));
+  }
+
   function computeAudioMetricsLocal(dataArray) {
     if (!dataArray?.length) {
       return { avgEnergy: 0, bassEnergy: 0 };
@@ -67,6 +161,8 @@ export function initVisualizer(context) {
     if (!canvas || !visualizerContainer) return;
     canvas.width = visualizerContainer.clientWidth;
     canvas.height = visualizerContainer.clientHeight;
+    ensureParticles();
+    resetParticles();
   }
 
   function updateReactiveBackground(dataArray) {
@@ -103,8 +199,11 @@ export function initVisualizer(context) {
       isMobile ? VISUALIZER_MOBILE_MAX_BARS : VISUALIZER_DESKTOP_MAX_BARS
     );
     const avgEnergy = Math.max(0, Math.min(1, (window.audioMetrics?.avgEnergy || 0) / 255));
+    const bassEnergy = Math.max(0, Math.min(1, (window.audioMetrics?.bassEnergy || 0) / 255));
     const centerGlowMix = Math.max(0, Math.min(1, state.reactiveBassLevel * 1.12 + avgEnergy * 0.24));
     state.visualizerFrameTick += 1;
+
+    drawParticles(avgEnergy, bassEnergy);
 
     if (!isMobile && centerGlowMix > 0.02) {
       const innerRadius = 34 + centerGlowMix * 18;
@@ -144,7 +243,8 @@ export function initVisualizer(context) {
       const rawBarHeight = dataArray[i];
       const motionBoost = 1 + avgEnergy * 0.22;
       const waveBoost = 1 + Math.sin((state.visualizerFrameTick * 0.06) + i * 0.22) * 0.06;
-      const barHeight = rawBarHeight * motionBoost * waveBoost * barScale;
+      const linearBarHeight = rawBarHeight * motionBoost * waveBoost * barScale;
+      const barHeight = compressRadialLength(linearBarHeight);
 
       ctx.save();
       ctx.translate(centerX, centerY);
@@ -251,6 +351,7 @@ export function initVisualizer(context) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
     state.reactiveBassLevel = 0;
+    resetParticles();
     document.documentElement.style.setProperty('--reactive-bass', '0');
     document.documentElement.style.setProperty('--reactive-bloom', '0');
   }

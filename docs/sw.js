@@ -1,4 +1,4 @@
-const CACHE_NAME = "echoglow-v9";
+const CACHE_NAME = "echoglow-v10";
 const CACHE_PREFIX = CACHE_NAME.slice(0, CACHE_NAME.lastIndexOf("-") + 1);
 
 const APP_SHELL = [
