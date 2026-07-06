@@ -59,7 +59,7 @@
       <img
         src="docs/assets/image/ScreenShot_Mobile.png"
         alt="Mobile UI"
-        width="280"
+        width="100%"
         style="display:block; margin: 10px auto;"
       />
     </td>
